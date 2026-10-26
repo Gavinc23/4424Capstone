@@ -1,0 +1,9 @@
+Label,n,tier,calibratedEscalated,seenInTrain
+BENIGN,795033,0,0.0002427572188827382,True
+Bot,1948,3,0.0,False
+DDoS,128014,2,0.3278547658849813,False
+Infiltration,36,3,0.0,False
+PortScan,90694,1,0.005402782984541425,False
+Web Attack ï¿½ Brute Force,1470,2,0.8496598639455782,False
+Web Attack ï¿½ Sql Injection,21,3,0.6190476190476191,False
+Web Attack ï¿½ XSS,652,2,0.9432515337423313,False

@@ -1,0 +1,14 @@
+# CICIDS2017 dataset, too big for GitHub (download from https://www.unb.ca/cic/datasets/ids-2017.html)
+data/
+*.zip
+*.pcap
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+
+# os
+.DS_Store
+Thumbs.db
