@@ -211,11 +211,14 @@ perClass.to_csv(os.path.join(args.outDir, 'perClass.csv'))
 #reliability plot for attack probability
 y = (tierTest >= 1).astype(int)
 fig, ax = plt.subplots(figsize=(4, 4))
+minCount = 200
 for name, p in [('uncalibrated', store['rawTest']), ('calibrated', store['pTest'])]:
     bins = np.linspace(0, 1, 11)
     idx = np.clip(np.digitize(p, bins) - 1, 0, 9)
-    xs = [p[idx == b].mean() for b in range(10) if (idx == b).sum() > 0]
-    ys = [y[idx == b].mean() for b in range(10) if (idx == b).sum() > 0]
+    print(name, 'flows per bin:', [int((idx == b).sum()) for b in range(10)])
+    keep = [b for b in range(10) if (idx == b).sum() >= minCount]
+    xs = [p[idx == b].mean() for b in keep]
+    ys = [y[idx == b].mean() for b in keep]
     ax.plot(xs, ys, marker='o', label=name)
 ax.plot([0, 1], [0, 1], 'k--', lw=1)
 ax.set_xlabel('predicted attack prob'); ax.set_ylabel('observed attack rate'); ax.legend()
