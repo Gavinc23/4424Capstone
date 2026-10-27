@@ -21,13 +21,13 @@ parser.add_argument('--out', dest='outDir', default='results')
 args = parser.parse_args()
 os.makedirs(args.outDir, exist_ok=True)
 
-# severity tiers, my own mapping (assumption, stress test it later)
+#severity tiers
 def getTier(label):
     l = label.lower()
     if l == 'benign': return 0
     if 'portscan' in l: return 1
     if any(k in l for k in ['infiltration', 'bot', 'heartbleed', 'sql']): return 3
-    return 2  # dos, ddos, patators, web brute force, xss
+    return 2  #dos, ddos, patators, web brute force, xss
 
 def loadData(dataDir):
     frames = []
@@ -48,7 +48,7 @@ data[featCols] = data[featCols].apply(pd.to_numeric, errors='coerce')
 data = data.replace([np.inf, -np.inf], np.nan).dropna(subset=featCols)
 print('after inf/nan drop:', len(data))
 before = len(data)
-data = data.drop_duplicates(subset=featCols + ['Label'])  # keeps file order
+data = data.drop_duplicates(subset=featCols + ['Label'])  #keep file order
 print(f'after dedup: {len(data)} (dropped {before - len(data)})')
 
 data['tier'] = data['Label'].map(getTier)
@@ -59,20 +59,20 @@ print(data.groupby(['session', 'Label']).size().to_string())
 print('\nrows per tier:')
 print(data['tier'].value_counts().sort_index().to_string())
 
-# split
+#split
 day = data['session'].str.lower()
 if args.splitMode == 'strict':
     isTest = day.str.startswith('thursday') | day.str.startswith('friday')
 elif args.splitMode == 'random':
-    # control: no time ordering, shows how optimistic a random split is
+    #no time ordering, shows optimism of random split
     isTest = np.random.RandomState(0).rand(len(data)) >= args.trainFrac
 elif args.splitMode == 'perClass':
-    # every attack type appears in both sets, test is the later part of each (session, label) stream
+    #every attack type appears in both sets
     pos = data.groupby(['session', 'Label']).cumcount()
     size = data.groupby(['session', 'Label'])['Label'].transform('size')
     isTest = (pos / size) >= args.trainFrac
 else:
-    # last 30% of each session (file order) is the held out block
+    #last 30% of each session is held out as test
     pos = data.groupby('session').cumcount()
     size = data.groupby('session')['Label'].transform('size')
     isTest = (pos / size) >= 0.7
@@ -98,7 +98,7 @@ def calcEce(prob, y, nBins=10):
     return ece
 
 def calcMetrics(tier, esc):
-    sev = tier >= 2  # should have been escalated
+    sev = tier >= 2  #should have escalated
     tp = (esc & sev).sum()
     return {
         'precision': tp / max(esc.sum(), 1),
@@ -128,7 +128,7 @@ for seed in range(args.numSeeds):
     xTr = tr[featCols].astype(np.float32).values
     xCal = cal[featCols].astype(np.float32).values
 
-    # binary: is it an attack
+    # is it attack y/n
     binModel = lgb.LGBMClassifier(n_estimators=200, learning_rate=0.1, num_leaves=63,
                                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
                                   random_state=seed, verbose=-1)
@@ -138,7 +138,7 @@ for seed in range(args.numSeeds):
     calibrator = fitCalibrator(rawCal, cal['isAttack'].values, args.calibMode)
     pTest = calibrator(rawTest)
 
-    # tier model, trained on attack rows only
+    #tier model, trained on attack rows
     atk = tr[tr['tier'] >= 1]
     tierModel = lgb.LGBMClassifier(n_estimators=150, learning_rate=0.1, num_leaves=31,
                                    class_weight='balanced' if args.tierBalanced else None,
@@ -150,7 +150,7 @@ for seed in range(args.numSeeds):
     sHat = pTest * expTier
     sRaw = rawTest * expTier
 
-    escBase = tierTest >= 1  # label derived baseline, optimistic
+    escBase = tierTest >= 1  #label derived baseline, optimistic
     escCal = sHat >= args.tauDefault
     escRaw = sRaw >= args.tauDefault
 
@@ -189,7 +189,7 @@ print('\n=== threshold sweep (mean over seeds) ===')
 print(sweepDf.round(4).to_string())
 sweepDf.to_csv(os.path.join(args.outDir, 'thresholdSweep.csv'))
 
-# bootstrap CIs on seed 0 calibrated system
+#bootstrap CIs on seed 0 calibrated system
 rng = np.random.RandomState(123)
 bootRows = []
 escSeed0 = store['sHat'] >= args.tauDefault
@@ -200,7 +200,7 @@ bootDf = pd.DataFrame(bootRows)
 print('\n=== bootstrap 95% CI, calibrated system, seed 0 ===')
 print(pd.DataFrame({'lo': bootDf.quantile(0.025), 'hi': bootDf.quantile(0.975)}).round(4).to_string())
 
-# per class recall (fraction escalated) at default tau, seed 0
+#per class recall at default tau, seed 0
 perClass = test.assign(escCal=escSeed0, escBase=(tierTest >= 1)).groupby('Label').agg(
     n=('tier', 'size'), tier=('tier', 'first'), calibratedEscalated=('escCal', 'mean'),
     seenInTrain=('Label', lambda s: s.iloc[0] in set(trainPool['Label'])))
@@ -208,7 +208,7 @@ print('\n=== per class: fraction escalated (calibrated, seed 0) ===')
 print(perClass.round(4).to_string())
 perClass.to_csv(os.path.join(args.outDir, 'perClass.csv'))
 
-# reliability plot for attack probability
+#reliability plot for attack probability
 y = (tierTest >= 1).astype(int)
 fig, ax = plt.subplots(figsize=(4, 4))
 for name, p in [('uncalibrated', store['rawTest']), ('calibrated', store['pTest'])]:
@@ -221,7 +221,7 @@ ax.plot([0, 1], [0, 1], 'k--', lw=1)
 ax.set_xlabel('predicted attack prob'); ax.set_ylabel('observed attack rate'); ax.legend()
 fig.tight_layout(); fig.savefig(os.path.join(args.outDir, 'reliability.png'), dpi=200)
 
-# sweep plot
+#sweep plot
 fig, ax = plt.subplots(figsize=(5, 3.5))
 ax.plot(sweepDf.index, sweepDf['tier3Recall'], marker='o', label='tier 3 recall')
 ax.plot(sweepDf.index, sweepDf['recall'], marker='o', label='severe recall')
