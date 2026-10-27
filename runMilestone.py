@@ -128,7 +128,7 @@ for seed in range(args.numSeeds):
     xTr = tr[featCols].astype(np.float32).values
     xCal = cal[featCols].astype(np.float32).values
 
-    # is it attack y/n
+    # is it attack 1/0
     binModel = lgb.LGBMClassifier(n_estimators=200, learning_rate=0.1, num_leaves=63,
                                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
                                   random_state=seed, verbose=-1)
@@ -231,3 +231,21 @@ ax.set_xlabel('threshold tau'); ax.set_ylabel('recall'); ax2.set_ylabel('escalat
 ax.legend(loc='lower left'); fig.tight_layout()
 fig.savefig(os.path.join(args.outDir, 'thresholdSweep.png'), dpi=200)
 print(f'\nsaved csvs and plots to {args.outDir}/')
+
+# GENERATIVE AI DISCLOSURE
+# Tool: Claude (Anthropic)
+# 1. Debugging and rethinking my train/test split:
+#    My original results were incorrect. I had forgotten that each day of the
+#    CICIDS2017 data contains different attack types, so my day-based
+#    train/test split meant the model was tested on attacks it never saw in
+#    training. I first went over the incorrect results with Claude to
+#    understand what was going wrong, and I then realized the cause myself.
+#    I used Claude to brainstorm and reevaluate alternative splits, which led
+#    to holding out part of the data from every day (the perClass and block
+#    split modes). I made the final decision on which split to use, then
+#    implemented, ran, and verified the changes myself.
+#
+# 2. Figures (reliability plot and threshold sweep plot):
+#    I used Claude to help me write the plotting code so that both figures
+#    were clear and comprehensive. I reviewed the output and checked that the
+#    plots reflect my results.
